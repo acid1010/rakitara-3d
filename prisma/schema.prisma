@@ -1,0 +1,319 @@
+// 3D print ops v1: cost (HPP), stock, cash, machines.
+// Money = Decimal. Weights = integer grams. Rows are voided or deactivated, never deleted.
+// Column names are Prisma defaults (camelCase); constraints.sql quotes them as-is.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- enums ----------
+
+enum PrintJobStatus {
+  PRINTING
+  DONE
+}
+
+enum FailureReason {
+  BED_ADHESION
+  SPAGHETTI
+  CLOG
+  FILAMENT_RUNOUT
+  LAYER_SHIFT
+  POWER_LOSS
+  OTHER
+}
+
+enum MaintenanceType {
+  NOZZLE
+  BED
+  BELT
+  CALIBRATION
+  REPAIR
+  OTHER
+}
+
+enum StockMovementType {
+  PRODUCTION
+  SALE
+  ADJUSTMENT
+}
+
+enum AdjustmentReason {
+  MISCOUNT
+  DAMAGED
+  SAMPLE
+  GIFTED
+  LOST
+}
+
+enum PaymentMethod {
+  TRANSFER
+  QRIS
+  CASH
+}
+
+enum CashDirection {
+  IN
+  OUT
+}
+
+enum TxnKind {
+  SALE_PAYMENT
+  MATERIAL_PURCHASE
+  EQUIPMENT_PURCHASE
+  ELECTRICITY_BILL
+  OPEX
+  WASTE
+  INVENTORY_ADJUSTMENT
+  OWNER_CAPITAL
+  OWNER_DRAW
+}
+
+enum TxnSource {
+  AUTO
+  MANUAL
+}
+
+// ---------- machines ----------
+
+model Printer {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  model         String?
+  purchaseCost  Decimal   @db.Decimal(14, 2)
+  lifespanHours Int
+  avgWatts      Int
+  purchasedAt   DateTime? @db.Date
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  jobs        PrintJob[]
+  maintenance MaintenanceLog[]
+}
+
+model MaintenanceLog {
+  id          String          @id @default(uuid())
+  printerId   String
+  type        MaintenanceType
+  notes       String?
+  cost        Decimal?        @db.Decimal(14, 2)
+  performedAt DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  printer     Printer      @relation(fields: [printerId], references: [id], onDelete: Restrict)
+  transaction Transaction?
+
+  @@index([printerId])
+}
+
+// ---------- materials (pooled per material, not per spool) ----------
+
+model Material {
+  id             String   @id @default(uuid())
+  name           String
+  color          String
+  stockGrams     Int      @default(0)
+  avgCostPerGram Decimal  @default(0) @db.Decimal(12, 4)
+  lowStockGrams  Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  purchases   MaterialPurchase[]
+  products    Product[]
+  jobs        PrintJob[]
+  adjustments StockAdjustment[]
+
+  @@unique([name, color])
+}
+
+model MaterialPurchase {
+  id          String    @id @default(uuid())
+  materialId  String
+  grams       Int
+  totalCost   Decimal   @db.Decimal(14, 2)
+  supplier    String?
+  purchasedAt DateTime  @default(now())
+  voidedAt    DateTime?
+  voidReason  String?
+  createdAt   DateTime  @default(now())
+
+  material    Material     @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  transaction Transaction?
+
+  @@index([materialId])
+}
+
+// ---------- products and finished-goods stock ----------
+
+model Product {
+  id              String   @id @default(uuid())
+  name            String
+  materialId      String
+  estGrams        Int
+  estPrintMinutes Int
+  listPrice       Decimal  @db.Decimal(14, 2)
+  avgCost         Decimal  @default(0) @db.Decimal(14, 4) // moving average of on-hand units
+  isCustom        Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  material    Material          @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  jobs        PrintJob[]
+  movements   StockMovement[]
+  sales       Sale[]
+  adjustments StockAdjustment[]
+
+  @@index([isActive])
+}
+
+model PrintJob {
+  id            String         @id @default(uuid())
+  productId     String
+  printerId     String
+  materialId    String
+  status        PrintJobStatus @default(PRINTING)
+  startedAt     DateTime
+  finishedAt    DateTime?
+  qtyPlanned    Int
+  qtyGood       Int            @default(0)
+  qtyFailed     Int            @default(0)
+  gramsUsed     Int? // actual, incl. supports/purge/brim
+  materialCost  Decimal?       @db.Decimal(14, 4)
+  machineCost   Decimal?       @db.Decimal(14, 4)
+  energyCost    Decimal?       @db.Decimal(14, 4)
+  unitCost      Decimal?       @db.Decimal(14, 4) // total job cost / qtyGood
+  failureReason FailureReason?
+  note          String?
+  voidedAt      DateTime?
+  voidReason    String?
+  createdAt     DateTime       @default(now())
+
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  printer     Printer         @relation(fields: [printerId], references: [id], onDelete: Restrict)
+  material    Material        @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  movements   StockMovement[]
+  transaction Transaction?
+
+  @@index([printerId, status])
+  @@index([productId])
+}
+
+// Ledger. On-hand = SUM(qty) per product. Reversals are new rows, never edits.
+model StockMovement {
+  id           String            @id @default(uuid())
+  productId    String
+  type         StockMovementType
+  qty          Int // signed
+  unitCost     Decimal           @db.Decimal(14, 4)
+  isReversal   Boolean           @default(false)
+  printJobId   String?
+  saleId       String?
+  adjustmentId String?
+  createdAt    DateTime          @default(now())
+
+  product    Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  printJob   PrintJob?        @relation(fields: [printJobId], references: [id], onDelete: Restrict)
+  sale       Sale?            @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  adjustment StockAdjustment? @relation(fields: [adjustmentId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([printJobId])
+  @@index([saleId])
+  @@index([adjustmentId])
+}
+
+// Exactly one of productId / materialId (CHECK in constraints.sql).
+// qtyDelta = units (product) or grams (material). costImpact is signed (negative = loss).
+model StockAdjustment {
+  id         String           @id @default(uuid())
+  productId  String?
+  materialId String?
+  qtyDelta   Int
+  reason     AdjustmentReason
+  costImpact Decimal          @db.Decimal(14, 2)
+  note       String?
+  voidedAt   DateTime?
+  voidReason String?
+  createdAt  DateTime         @default(now())
+
+  product     Product?        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  material    Material?       @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  movements   StockMovement[]
+  transaction Transaction?
+
+  @@index([productId])
+  @@index([materialId])
+}
+
+// ---------- sales ----------
+
+model Sale {
+  id            String         @id @default(uuid())
+  saleNo        String         @unique
+  productId     String
+  qty           Int
+  unitPrice     Decimal        @db.Decimal(14, 2) // typed per sale
+  unitCogs      Decimal        @db.Decimal(14, 4) // snapshot of Product.avgCost
+  customerName  String?
+  customerPhone String?
+  soldAt        DateTime       @default(now())
+  paidAt        DateTime? // null = receivable
+  paymentMethod PaymentMethod?
+  voidedAt      DateTime?
+  voidReason    String?
+  createdAt     DateTime       @default(now())
+
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movements   StockMovement[]
+  transaction Transaction?
+
+  @@index([productId])
+  @@index([soldAt])
+  @@index([paidAt])
+}
+
+// ---------- cash journal ----------
+// AUTO rows are created by actions and only voided via their source record.
+// MANUAL rows are typed in (rent, bills, repairs, equipment, owner capital/draw).
+
+model Transaction {
+  id                 String        @id @default(uuid())
+  occurredAt         DateTime
+  direction          CashDirection
+  kind               TxnKind
+  amount             Decimal       @db.Decimal(14, 2) // always > 0, direction carries the sign
+  affectsCash        Boolean
+  affectsPnl         Boolean
+  source             TxnSource
+  category           String? // manual rows only
+  saleId             String?       @unique
+  materialPurchaseId String?       @unique
+  printJobId         String?       @unique
+  adjustmentId       String?       @unique
+  maintenanceId      String?       @unique
+  note               String?
+  voidedAt           DateTime?
+  voidReason         String?
+  createdAt          DateTime      @default(now())
+
+  sale             Sale?             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  materialPurchase MaterialPurchase? @relation(fields: [materialPurchaseId], references: [id], onDelete: Restrict)
+  printJob         PrintJob?         @relation(fields: [printJobId], references: [id], onDelete: Restrict)
+  adjustment       StockAdjustment?  @relation(fields: [adjustmentId], references: [id], onDelete: Restrict)
+  maintenance      MaintenanceLog?   @relation(fields: [maintenanceId], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt])
+  @@index([kind])
+}
+
+// ---------- settings ----------
+// Required key: price_per_kwh
+
+model Setting {
+  key   String @id
+  value String
+}
