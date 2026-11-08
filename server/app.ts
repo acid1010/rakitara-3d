@@ -15,7 +15,7 @@ export function createApp(config: Config, db: Db) {
   if (config.TRUST_PROXY) app.set("trust proxy", config.TRUST_PROXY.split(",").map((v) => v.trim()));
   app.use(helmet());
   app.use((_req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
-  app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  app.get(["/health", "/api/health"], (_req, res) => res.json({ status: "ok" }));
   app.use("/api", rateLimit({ windowMs: 60000, limit: 300, standardHeaders: "draft-8", legacyHeaders: false }));
   app.use("/api", (req, _res, next) => {
     if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();

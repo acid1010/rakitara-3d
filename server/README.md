@@ -30,6 +30,7 @@ Every write requires `Origin: APP_ORIGIN` and `Content-Type: application/json`, 
 ## HTTP contract
 
 - Prefix `/api`; all routes except `/health` and `/auth/login` require owner session.
+- `GET /health` is also available directly on the backend (without the `/api` prefix). Both health paths return HTTP 200 with `{ "status": "ok" }` without authentication; they check liveness, not database readiness.
 - Money in request/response: decimal **strings**, no exponents. Inputs allow 12 integer digits, 2 decimal places. Computed unit costs retain up to 4 decimal places; trailing zeros are not guaranteed. Grams/counts: integers.
 - Timestamps returned as UTC ISO strings. Operational dates are server-generated; manual transactions accept optional ISO `occurredAt` with timezone. Jobs start/finish now; no backdated production in v1.
 - Lists accept `limit` (1–100, default 50), `offset` (0–100000). Voided/inactive records remain visible. `/products` includes computed `onHand`. `/stock-movements` also accepts `productId`.
