@@ -10,7 +10,7 @@ export default function OperationsLayout({
   return (
     <OperationsProvider>
       <Shell>{children}</Shell>
-      <Toaster timeout={0} />
+      <Toaster />
     </OperationsProvider>
   );
 }
