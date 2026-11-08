@@ -1,5 +1,18 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Operations API
+
+Separate Express API: setup, authentication, endpoints, accounting policies and deployment requirements in [server/README.md](server/README.md).
+Run `bun run api:dev` alongside the frontend. Next.js forwards `/api/*` to the API process.
+
+## Owner workspace
+
+The frontend includes sign-in, production, materials/purchases, products/stock, sales/payments, printers/maintenance, the cash journal, and electricity settings. Open `/login` after configuring the API owner credentials. The API and frontend must share the same origin (`APP_ORIGIN`, normally `http://localhost:3000` for development).
+
+The interface uses English, IDR and Asia/Jakarta (WIB). Records are voided or deactivated, never deleted. Interrupted writes are not retried automatically: inspect the relevant list before repeating an uncertain action. This release does not provide financial reports or direct printer telemetry.
+
+Checks: `bun run frontend:test`, `bun run api:test`, `bunx next typegen`, `bunx tsc --noEmit`, `bun run lint`, and `bun run build`. Database tests require an explicitly supplied `TEST_DATABASE_URL`; see the API README before using it. Frontend tests cover exact money formatting, form payloads, pagination, API errors and ambiguous writes.
+
 ## Getting Started
 
 First, run the development server:

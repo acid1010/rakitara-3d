@@ -1,6 +1,6 @@
 // 3D print ops v1: cost (HPP), stock, cash, machines.
 // Money = Decimal. Weights = integer grams. Rows are voided or deactivated, never deleted.
-// Column names are Prisma defaults (camelCase); constraints.sql quotes them as-is.
+// Column names are Prisma defaults (camelCase); SQL migrations quote them as-is.
 
 generator client {
   provider = "prisma-client-js"
@@ -103,6 +103,8 @@ model MaintenanceLog {
   cost        Decimal?        @db.Decimal(14, 2)
   performedAt DateTime        @default(now())
   createdAt   DateTime        @default(now())
+  voidedAt    DateTime?
+  voidReason  String?
 
   printer     Printer      @relation(fields: [printerId], references: [id], onDelete: Restrict)
   transaction Transaction?
@@ -224,9 +226,12 @@ model StockMovement {
   @@index([printJobId])
   @@index([saleId])
   @@index([adjustmentId])
+  @@unique([printJobId, isReversal], map: "StockMovement_job_once")
+  @@unique([saleId, isReversal], map: "StockMovement_sale_once")
+  @@unique([adjustmentId, isReversal], map: "StockMovement_adjustment_once")
 }
 
-// Exactly one of productId / materialId (CHECK in constraints.sql).
+// Exactly one of productId / materialId (CHECK in the API safety migration).
 // qtyDelta = units (product) or grams (material). costImpact is signed (negative = loss).
 model StockAdjustment {
   id         String           @id @default(uuid())
@@ -316,4 +321,20 @@ model Transaction {
 model Setting {
   key   String @id
   value String
+}
+
+// Authentication infrastructure; expired sessions are pruned, unlike business records.
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire])
+  @@map("session")
+}
+
+model LoginThrottle {
+  key       String   @id
+  attempts  Int
+  expiresAt DateTime
 }
