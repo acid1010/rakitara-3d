@@ -5,15 +5,17 @@ Express 5 + Prisma 7, separate Bun process. Next.js proxies `/api/*` to `API_INT
 ## Setup
 
 1. Install with `bun install`. Copy **missing values** from `.env.example` into your existing `.env`; do not overwrite your database credentials.
-2. Generate a password hash without exposing the password in shell history (zsh):
+2. Generate an `.env`-ready password hash without exposing the password in shell history (zsh):
 
    ```zsh
    read -rs 'password?Owner password: '
-   print -rn -- "$password" | bun run api:hash-password
+   print -rn -- "$password" | bun run api:hash-password | sed 's/\$/\\$/g'
    unset password
    ```
 
-   Save the resulting `scrypt$...` value as `ADMIN_PASSWORD_HASH`. Generate `SESSION_SECRET` with `openssl rand -hex 32`. Keep secrets out of git and all `NEXT_PUBLIC_*` variables.
+   Save the resulting escaped value as `ADMIN_PASSWORD_HASH` in `.env`. Keep both `\$` separators: Bun expands unescaped `$` references, which corrupts the hash. The stored shape is `ADMIN_PASSWORD_HASH=scrypt\$<32 hex characters>\$<128 hex characters>`; the backslashes are removed when loaded. Outside `.env` (for example, a deployment secret store), use the original unescaped hash.
+
+   Generate `SESSION_SECRET` with `openssl rand -hex 32`. Keep secrets out of git and all `NEXT_PUBLIC_*` variables.
 3. Review migrations before applying:
    - **Empty database:** `bun run db:deploy`.
    - **Existing database:** back up first. Compare the database against `202611080001_initial`; baseline that migration **only if the original tables match** using `bunx prisma migrate resolve --applied 202611080001_initial`. Then deploy the safety migration. Do not mark the second migration applied: it adds session tables, maintenance void fields, checks, indexes and triggers. Existing invalid rows will cause migration failure; fix deliberately, never reset production.
