@@ -66,7 +66,14 @@ export function Brand() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { username, notice, notify } = useOperations();
+  const {
+    username,
+    notice,
+    notify,
+    ready,
+    expired,
+    error: workspaceError,
+  } = useOperations();
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -126,18 +133,18 @@ export function Shell({ children }: { children: ReactNode }) {
           <Separator />
           <div className="owner">
             <span className="owner-avatar">
-              {username.slice(0, 1).toUpperCase()}
+              {username ? username.slice(0, 1).toUpperCase() : "—"}
             </span>
             <div>
-              <strong>{username}</strong>
-              <span>Studio owner</span>
+              <strong>{username || "Owner workspace"}</strong>
+              <span>{ready ? "Studio owner" : "Checking session…"}</span>
             </div>
             <Button
               variant="ghost"
               size="icon"
               aria-label="Sign out"
               onClick={logout}
-              disabled={loggingOut}
+              disabled={loggingOut || !ready || expired}
             >
               <RiLogoutBoxRLine />
             </Button>
@@ -174,7 +181,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {menu && (
           <div id="mobile-navigation" className="mobile-navigation">
             {navigation}
-            <Button variant="ghost" onClick={logout} disabled={loggingOut}>
+            <Button
+              variant="ghost"
+              onClick={logout}
+              disabled={loggingOut || !ready || expired}
+            >
               <RiLogoutBoxRLine data-icon="inline-start" />
               Sign out
             </Button>
@@ -186,7 +197,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {notice && (
+          {notice && ready && !expired && !workspaceError && (
             <div className="save-notice" role="status">
               <RiCheckLine aria-hidden="true" />
               <span>{notice}</span>

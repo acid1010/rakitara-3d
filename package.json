@@ -11,7 +11,7 @@
     "api:start": "bun server/index.ts",
     "api:hash-password": "bun server/hash-password.ts",
     "api:test": "bun test server",
-    "frontend:test": "bun test tests/frontend.test.ts",
+    "frontend:test": "bun test tests",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy"
   },

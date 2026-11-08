@@ -29,6 +29,9 @@ type References = {
   settings: SettingRow[];
 };
 type Operations = References & {
+  ready: boolean;
+  expired: boolean;
+  error: string;
   username: string;
   revision: number;
   refresh: () => Promise<void>;
@@ -36,6 +39,13 @@ type Operations = References & {
   notify: (message: string) => void;
 };
 const Context = createContext<Operations | null>(null);
+const emptyReferences: References = {
+  printers: [],
+  materials: [],
+  products: [],
+  running: [],
+  settings: [],
+};
 
 export function Loading({
   label = "Loading your workspace…",
@@ -135,36 +145,43 @@ export function OperationsProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [username, refresh]);
 
-  if (expired) return <Loading label="Returning to sign in…" />;
-  if (!refs || !username)
-    return (
-      <div className="workspace-boot">
-        {error ? (
-          <ErrorMessage
-            message={error}
-            retry={() => window.location.reload()}
-          />
-        ) : (
-          <Loading />
-        )}
-      </div>
-    );
   return (
     <Context.Provider
-      value={{ ...refs, username, revision, refresh, notice, notify }}
+      value={{
+        ...(refs ?? emptyReferences),
+        ready: !!refs && !!username,
+        expired,
+        error,
+        username,
+        revision,
+        refresh,
+        notice,
+        notify,
+      }}
     >
-      {error ? (
-        <div className="workspace-boot">
-          <ErrorMessage
-            message={`${error} Your last action may already be saved. Refresh before making another change.`}
-            retry={() => void refresh()}
-          />
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </Context.Provider>
   );
+}
+
+export function OperationsGuard({ children }: { children: ReactNode }) {
+  const { ready, expired, error, refresh } = useOperations();
+  if (expired) return <Loading label="Returning to sign in…" />;
+  if (error)
+    return (
+      <div className="workspace-boot">
+        <ErrorMessage
+          message={
+            ready
+              ? `${error} Your last action may already be saved. Refresh before making another change.`
+              : error
+          }
+          retry={ready ? () => void refresh() : () => window.location.reload()}
+        />
+      </div>
+    );
+  if (!ready) return <Loading />;
+  return children;
 }
 
 export function useOperations() {

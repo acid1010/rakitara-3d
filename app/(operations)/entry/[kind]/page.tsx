@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { EntryPage } from "@/components/ops/entry-page";
-import { Loading } from "@/components/ops/provider";
+import { Loading, OperationsGuard } from "@/components/ops/provider";
 import { entryKinds } from "@/lib/entry";
 
 export function generateStaticParams() {
@@ -16,8 +16,10 @@ export default function Page({
   params: Promise<{ kind: string }>;
 }) {
   return (
-    <Suspense fallback={<Loading />}>
-      <EntryRoute params={params} />
-    </Suspense>
+    <OperationsGuard>
+      <Suspense fallback={<Loading />}>
+        <EntryRoute params={params} />
+      </Suspense>
+    </OperationsGuard>
   );
 }

@@ -12,10 +12,18 @@ import {
   FieldDescription,
 } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useOperations } from "@/components/ops/provider";
+import { OperationsGuard, useOperations } from "@/components/ops/provider";
 import { PageHeading } from "@/components/ops/common";
 
 export default function Settings() {
+  return (
+    <OperationsGuard>
+      <SettingsForm />
+    </OperationsGuard>
+  );
+}
+
+function SettingsForm() {
   const { settings, refresh, notify } = useOperations();
   const current = settings.find((s) => s.key === "price_per_kwh");
   const [value, setValue] = useState(current?.value ?? "");
