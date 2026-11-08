@@ -15,7 +15,6 @@ import {
   RiMenuLine,
   RiCloseLine,
   RiArrowRightUpLine,
-  RiCheckLine,
 } from "@remixicon/react";
 import { sections } from "@/lib/contracts";
 import { api } from "@/lib/api";
@@ -66,14 +65,7 @@ export function Brand() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const {
-    username,
-    notice,
-    notify,
-    ready,
-    expired,
-    error: workspaceError,
-  } = useOperations();
+  const { username, ready, expired } = useOperations();
   const pathname = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -160,7 +152,6 @@ export function Shell({ children }: { children: ReactNode }) {
             Workspace <span>/</span> <strong>{current}</strong>
           </div>
           <div className="topbar-meta">
-            <span>WIB · IDR</span>
             <Button
               className="mobile-menu-button"
               variant="ghost"
@@ -172,10 +163,10 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               {menu ? <RiCloseLine /> : <RiMenuLine />}
             </Button>
-            <Link href="/settings" className="help-link">
-              Studio settings
+            {/* <Link href="/help" className="help-link">
+              Help
               <RiArrowRightUpLine aria-hidden="true" />
-            </Link>
+            </Link> */}
           </div>
         </header>
         {menu && (
@@ -196,20 +187,6 @@ export function Shell({ children }: { children: ReactNode }) {
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          )}
-          {notice && ready && !expired && !workspaceError && (
-            <div className="save-notice" role="status">
-              <RiCheckLine aria-hidden="true" />
-              <span>{notice}</span>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Dismiss notification"
-                onClick={() => notify("")}
-              >
-                <RiCloseLine />
-              </Button>
-            </div>
           )}
           {children}
         </main>

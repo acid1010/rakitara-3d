@@ -13,6 +13,20 @@ The interface uses English, IDR and Asia/Jakarta (WIB). Records are voided or de
 
 Checks: `bun run frontend:test`, `bun run api:test`, `bunx next typegen`, `bunx tsc --noEmit`, `bun run lint`, and `bun run build`. Database tests require an explicitly supplied `TEST_DATABASE_URL`; see the API README before using it. Frontend tests cover exact money formatting, form payloads, pagination, API errors and ambiguous writes.
 
+## Production with PM2
+
+`ecosystem.config.js` runs `rakitara-web` with Node.js on `127.0.0.1:3000` and `rakitara-api` with Bun on loopback (`API_PORT` from the environment, default `3001`). Both use production mode and a 12-second stop timeout so the API can finish its 10-second shutdown. Node.js, Bun and PM2 must be available on the deployment user's PATH.
+
+Configure the production environment first: HTTPS `APP_ORIGIN`, owner credentials, session secret, database connection, generated Prisma Client and applied migrations; see [server/README.md](server/README.md). Keep credentials in the server environment or its untracked env files, not the ecosystem config. If the API port changes, set the matching `API_INTERNAL_URL` **before building** because Next.js records the proxy destination during the build.
+
+```sh
+bun run build
+pm2 start ecosystem.config.js
+pm2 save
+```
+
+Terminate HTTPS at a reverse proxy pointed at `127.0.0.1:3000`; keep `/api` on that same public origin. Configure `TRUST_PROXY` for the actual proxy addresses. For boot persistence, run `pm2 startup` and follow its platform-specific instructions, then `pm2 save` again. After deploying a new build, restart only these apps with `pm2 restart ecosystem.config.js --update-env`.
+
 ## Getting Started
 
 First, run the development server:

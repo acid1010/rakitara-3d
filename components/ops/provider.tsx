@@ -35,8 +35,6 @@ type Operations = References & {
   username: string;
   revision: number;
   refresh: () => Promise<void>;
-  notice: string;
-  notify: (message: string) => void;
 };
 const Context = createContext<Operations | null>(null);
 const emptyReferences: References = {
@@ -91,7 +89,6 @@ export function OperationsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [revision, setRevision] = useState(0);
-  const [notice, notify] = useState("");
   const refresh = useCallback(async () => {
     try {
       // shortcut: owner-sized master catalogs load in full; add server-side lookup search before large catalogs.
@@ -155,8 +152,6 @@ export function OperationsProvider({ children }: { children: ReactNode }) {
         username,
         revision,
         refresh,
-        notice,
-        notify,
       }}
     >
       {children}

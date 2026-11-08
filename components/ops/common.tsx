@@ -26,6 +26,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useOperations } from "./provider";
@@ -114,12 +115,12 @@ export function Pager({
 }) {
   return (
     <div className="list-footer">
-      <span>
+      {/* <span>
         {count
           ? `Showing ${offset + 1}–${offset + count}`
           : "No records on this page"}
         <span className="pagination-hint"> · newest first</span>
-      </span>
+      </span> */}
       <div>
         <Button
           variant="outline"
@@ -158,7 +159,7 @@ export function VoidButton({
   const [error, setError] = useState("");
   const [uncertain, setUncertain] = useState(false);
   const lock = useRef(false);
-  const { refresh, notify } = useOperations();
+  const { refresh } = useOperations();
   function close() {
     setOpen(false);
     if (uncertain) void refresh();
@@ -201,7 +202,11 @@ export function VoidButton({
                   method: "POST",
                   body: { reason: data.get("reason") },
                 });
-                notify("Record voided. Related balances have been refreshed.");
+                toast.add({
+                  id: "operation-success",
+                  type: "success",
+                  title: "Record voided. Related balances have been refreshed.",
+                });
                 setOpen(false);
                 await refresh();
               } catch (e) {

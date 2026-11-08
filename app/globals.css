@@ -27,6 +27,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -982,26 +983,6 @@ textarea {
   font-size: 12px;
   line-height: 1.8;
   margin-top: 25px;
-}
-.save-notice {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: var(--success-surface);
-  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
-  color: var(--success);
-  border-radius: 7px;
-  padding: 10px 14px;
-  margin-bottom: 24px;
-  font-size: 12px;
-}
-.save-notice > svg {
-  width: 17px;
-  height: 17px;
-  flex-shrink: 0;
-}
-.save-notice > button {
-  margin-left: auto;
 }
 .workspace-boot {
   width: min(900px, 100%);

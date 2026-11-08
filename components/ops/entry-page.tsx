@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/native-select";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "@/components/ui/toast";
 import { useOperations, useList, Loading, ErrorMessage } from "./provider";
 import { PageHeading, NoRecords } from "./common";
 
@@ -218,7 +219,7 @@ function EntryEditor({
   job?: JobRow;
   sale?: SaleRow;
 }) {
-  const { printers, materials, products, running, settings, refresh, notify } =
+  const { printers, materials, products, running, settings, refresh } =
     useOperations();
   const router = useRouter();
   const params = useSearchParams();
@@ -739,11 +740,13 @@ function EntryEditor({
                   method: editing ? "PATCH" : "POST",
                   body,
                 });
-                notify(
-                  editing
+                toast.add({
+                  id: "operation-success",
+                  type: "success",
+                  title: editing
                     ? "Changes saved."
                     : `${info.save === "Start print job" ? "Print job started" : info.save === "Finish job" ? "Print job completed. HPP and stock updated" : info.save === "Record payment" ? "Payment recorded" : "Record saved"}.`,
-                );
+                });
                 await refresh();
                 router.push(info.back);
               } catch (e) {

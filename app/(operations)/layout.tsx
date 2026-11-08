@@ -1,5 +1,6 @@
 import { OperationsProvider } from "@/components/ops/provider";
 import { Shell } from "@/components/ops/shell";
+import { Toaster } from "@/components/ui/toast";
 
 export default function OperationsLayout({
   children,
@@ -9,6 +10,7 @@ export default function OperationsLayout({
   return (
     <OperationsProvider>
       <Shell>{children}</Shell>
+      <Toaster timeout={0} />
     </OperationsProvider>
   );
 }

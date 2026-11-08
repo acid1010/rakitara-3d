@@ -449,13 +449,13 @@ export function InventoryPage({
           />
         )}
       </div>
-      <p className="page-note">
+      {/* <p className="page-note">
         {kind === "materials"
           ? "Material is pooled by name and color. Purchases update its weighted-average cost."
           : kind === "products"
             ? "HPP is the weighted-average cost of finished stock, not the list price. A different material needs a new product."
             : "Adding a printer does not record its cash payment. Record equipment purchases separately in the cash journal."}
-      </p>
+      </p> */}
     </>
   );
 }
@@ -589,7 +589,7 @@ export function SalesPage() {
   return (
     <History<SaleRow>
       title="Sales"
-      description="From finished print to sale. Keep every payment in view."
+      description="Every sale, with stock and cash recorded together."
       action={{ href: "/entry/sale", label: "Record sale" }}
       path={path}
       controls={
@@ -606,7 +606,6 @@ export function SalesPage() {
           <NativeSelectOption value="voided">Voided</NativeSelectOption>
         </NativeSelect>
       }
-      note="Stock leaves the shelf when a sale is recorded, even if payment comes later. Payments are full settlement only."
       columns={[
         {
           title: "Sale",

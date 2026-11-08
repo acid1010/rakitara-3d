@@ -12,6 +12,7 @@ import {
   FieldDescription,
 } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/toast";
 import { OperationsGuard, useOperations } from "@/components/ops/provider";
 import { PageHeading } from "@/components/ops/common";
 
@@ -24,7 +25,7 @@ export default function Settings() {
 }
 
 function SettingsForm() {
-  const { settings, refresh, notify } = useOperations();
+  const { settings, refresh } = useOperations();
   const current = settings.find((s) => s.key === "price_per_kwh");
   const [value, setValue] = useState(current?.value ?? "");
   const [pending, setPending] = useState(false);
@@ -61,9 +62,12 @@ function SettingsForm() {
                   method: "PUT",
                   body: { value },
                 });
-                notify(
-                  "Electricity rate saved. Completed jobs keep their original costs.",
-                );
+                toast.add({
+                  id: "operation-success",
+                  type: "success",
+                  title:
+                    "Electricity rate saved. Completed jobs keep their original costs.",
+                });
                 await refresh();
               } catch (e) {
                 setError(
@@ -122,7 +126,7 @@ function SettingsForm() {
             </FieldGroup>
           </form>
         </section>
-        <section className="settings-facts">
+        {/* <section className="settings-facts">
           <h2>Workspace defaults</h2>
           <dl>
             <dt>Language</dt>
@@ -138,7 +142,7 @@ function SettingsForm() {
             Owner credentials are configured on the server. Registration and
             password recovery are not available in this app.
           </p>
-        </section>
+        </section> */}
       </div>
     </>
   );
