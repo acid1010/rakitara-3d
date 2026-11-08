@@ -16,8 +16,9 @@ module.exports = {
     {
       name: "rakitara-api",
       cwd: __dirname,
-      script: "server/index.ts",
-      interpreter: "bun",
+      script: "bun",
+      args: ["run", "server/index.ts"],
+      interpreter: "none",
       exec_mode: "fork",
       instances: 1,
       kill_timeout: 12000,
